@@ -1,3 +1,5 @@
+# 引入 upload_api.sh
+source "$(dirname "$0")/upload_api.sh"
 #!/bin/bash
 # 全局变量定义
 
@@ -118,64 +120,6 @@ submit_test_version() {
   fi
 }
 
-# 获取上传文件URL
-# 用法: get_upload_file_url <fileName> <contentLength>
-get_upload_file_url() {
-  log "调用获取上传文件URL接口..."
-  local fileName="$1"
-  local contentLength="$2"
-  local url="https://connect-api.cloud.huawei.com/api/publish/v2/upload-url/for-obs?appId=${appId}&fileName=${fileName}&contentLength=${contentLength}"
-  log "请求参数: url=$url"
-  local response=$(curl -s -X GET "$url" \
-    -H "client_id: $client_id" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $authorization")
-  local code=$(echo "$response" | grep -o '"code"[ ]*:[ ]*[0-9]*' | grep -o '[0-9]*')
-  log "获取上传文件URL接口返回: $response"
-  if [ "$code" = "0" ]; then
-    echo "$response"
-  else
-    log "Request failed or code != 0"
-    return 1
-  fi
-}
-
-# 使用 get_upload_file_url 返回的信息上传文件
-# 用法: upload_file_to_obs <filePath> <fileName> <contentLength>
-upload_file_to_obs() {
-  log "调用上传文件到OBS接口..."
-  local filePath="$1"
-  local fileName="$2"
-  local contentLength="$3"
-  log "请求参数: filePath=$filePath, fileName=$fileName, contentLength=$contentLength"
-  local response=$(get_upload_file_url "$fileName" "$contentLength")
-  local code=$(echo "$response" | grep -o '"code"[ ]*:[ ]*[0-9]*' | grep -o '[0-9]*')
-  log "上传文件到OBS接口获取URL返回: $response"
-  if [ "$code" != "0" ]; then
-    log "Failed to get upload URL"
-    return 1
-  fi
-  local url=$(echo "$response" | grep -o '"url"[ ]*:[ ]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
-  local objectId=$(echo "$response" | grep -o '"objectId"[ ]*:[ ]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
-  local headers_json=$(echo "$response" | grep -o '"headers"[ ]*:[ ]*{[^}]*}' | sed 's/.*: *{\(.*\)}/\1/')
-  local header_args=()
-  # 解析 headers_json 为 curl header 参数
-  while IFS=, read -ra kvs; do
-    for kv in "${kvs[@]}"; do
-      key=$(echo "$kv" | awk -F: '{print $1}' | tr -d '" ')
-      value=$(echo "$kv" | awk -F: '{print $2}' | tr -d '" ')
-      header_args+=("-H" "$key: $value")
-    done
-  done <<< "$headers_json"
-  log "开始上传文件到OBS..."
-  curl -s -X PUT "$url" "${header_args[@]}" --data-binary "@$filePath" -H "Content-Length: $contentLength" -H "Content-Type: application/octet-stream"
-  echo "$objectId"
-}
-
-# 日志记录函数
-log() {
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-}
 
 # 主流程入口
 if [[ "$filePath" != "" ]]; then
@@ -185,7 +129,7 @@ if [[ "$filePath" != "" ]]; then
   contentLength=$(stat -f%z "$filePath")
   log "文件大小: $contentLength 字节"
   log "开始上传文件..."
-  objectId=$(upload_file_to_obs "$filePath" "$fileName" "$contentLength")
+  objectId=$(upload_file_to_obs "$filePath" "$fileName" "$contentLength" "$appId" "$client_id" "$authorization")
   log "上传完成，objectId: $objectId"
   if [[ -z "$objectId" ]]; then
     log "Failed to upload file and get objectId"
@@ -223,9 +167,9 @@ else
 fi
 
 # 示例调用
+# ./testing_api.sh <your_app_file.app>
+# 也可单独调用以下函数（需提前设置相关变量）：
 # new_test_version
-# upload_pkg "********.app" "CN/2024052102/********.app"
-# put_test_version "1425*********60" "1426********56"
-# submit_test_version "1418********32"
-# get_upload_file_url "yourfile.app" "123456"
-# upload_file_to_obs "/path/to/yourfile.app" "yourfile.app" "123456"
+# add_test_version_package <objectId>
+# put_test_version <versionId>
+# submit_test_version <versionId>
