@@ -43,3 +43,6 @@
 ```bash
 ./upload.sh ./myapp.app
 ```
+
+### 参考文档
+- [华为 AppGallery Connect API 文档](https://developer.huawei.com/consumer/cn/doc/app/agc-help-connect-api-0000002236015554)
