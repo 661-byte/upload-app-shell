@@ -24,24 +24,24 @@
    ```bash
    cd upload-app-shell
    ```
-3. 确保 `upload.sh` 有执行权限：
+3. 确保 `testing_api.sh` 有执行权限：
    ```bash
-   chmod +x upload.sh
+   chmod +x testing_api.sh
    ```
 
 ### 使用方法
 ```bash
-./upload.sh <app_path>
+./testing_api.sh <app_path>
 ```
 
-> **备注：首次使用前请在 upload.sh 脚本内更新 appId、client_id、authorization 等认证信息为你自己的开发者账号信息。**
+> **备注：首次使用前请在 testing_api.sh 脚本内更新 appId、client_id、authorization 等认证信息为你自己的开发者账号信息。**
 
 参数说明：
 - `<app_path>`：Harmony 应用包路径
 
 ### 示例
 ```bash
-./upload.sh ./myapp.app
+./testing_api.sh ./myapp.app
 ```
 
 ### 参考文档
